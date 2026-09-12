@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>simplemedal.</title>
+<title>simpleclips</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -30,10 +30,11 @@
     position: relative;
     background: #000;
   }
-  .slide iframe {
+  .slide video {
     height: 100%;
     width: 100%;
-    border: none;
+    object-fit: contain;
+    background: #000;
   }
   #feed::-webkit-scrollbar { display: none; }
   #feed { -ms-overflow-style: none; scrollbar-width: none; }
@@ -67,15 +68,11 @@
 <div id="errorBox"></div>
 
 <script>
-  // Category IDs per Medal's /v1/categories endpoint. 0 = All games.
-  const CATEGORY_ID = 0;
-
   const feed = document.getElementById('feed');
   const status = document.getElementById('status');
   const errorBox = document.getElementById('errorBox');
 
-  let apiKey = null;
-  let offset = 0;
+  let maxId = null;
   let loading = false;
   let noMoreData = false;
 
@@ -85,110 +82,84 @@
     status.style.display = 'none';
   }
 
-  async function init() {
-    try {
-      const keyRes = await fetch('/api/medal?action=generate_key');
-      const keyData = await keyRes.json();
-      console.log('Key response:', keyData);
-
-      if (!keyRes.ok || !keyData.publicKey) {
-        showError('Could not generate a Medal API key. Raw response: ' + JSON.stringify(keyData));
-        return;
-      }
-
-      apiKey = keyData.publicKey;
-      console.log('Using API key:', apiKey);
-
-      fetchClips();
-    } catch (e) {
-      console.error(e);
-      showError('Could not reach the key-generation endpoint: ' + e.message);
-    }
-  }
-
   async function fetchClips() {
-    if (loading || noMoreData || !apiKey) return;
+    if (loading || noMoreData) return;
     loading = true;
     status.style.display = 'block';
 
     try {
-      const url = `/api/medal?action=trending&key=${encodeURIComponent(apiKey)}&categoryId=${CATEGORY_ID}&offset=${offset}`;
+      const url = `/api/mastodon${maxId ? '?maxId=' + maxId : ''}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (!res.ok) {
-        console.error('Trending fetch failed:', data);
-        showError(`Medal API error. Key used: ${apiKey}. Response: ${JSON.stringify(data)}`);
+        console.error('Mastodon fetch failed:', data);
+        showError(`Error fetching clips: ${JSON.stringify(data)}`);
         loading = false;
         return;
       }
 
-      const clips = data.contentObjects || [];
+      const clips = data.clips || [];
+      maxId = data.nextMaxId;
 
       if (clips.length === 0) {
-        noMoreData = true;
-      } else {
-        clips.forEach(addSlide);
-        offset += clips.length;
+        loading = false;
+        status.style.display = 'none';
+        if (maxId) fetchClips();
+        else noMoreData = true;
+        return;
       }
+
+      clips.forEach(addSlide);
     } catch (e) {
-      showError('Network error reaching Medal\'s API.');
+      console.error(e);
+      showError('Network error: ' + e.message);
     }
 
     loading = false;
     status.style.display = 'none';
   }
 
-  function extractSrc(embedIframeUrl) {
-    const match = embedIframeUrl && embedIframeUrl.match(/src=['"]([^'"]+)['"]/);
-    return match ? match[1] : null;
-  }
-
   function addSlide(clip) {
-    const rawSrc = extractSrc(clip.embedIframeUrl);
-    if (!rawSrc) return;
-
-    // force no cta overlay, no loop-forced-autoplay until in view
-    const url = new URL(rawSrc);
-    url.searchParams.set('cta', '0');
-    url.searchParams.set('autoplay', '0');
-    url.searchParams.set('loop', '1');
-
     const slide = document.createElement('div');
     slide.className = 'slide';
-    slide.dataset.src = url.toString();
 
+    const video = document.createElement('video');
+    video.src = clip.url;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    slide.appendChild(video);
     feed.appendChild(slide);
     observer.observe(slide);
+
+    slide.addEventListener('click', () => {
+      if (video.paused) video.play();
+      video.muted = !video.muted;
+    });
   }
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      const slide = entry.target;
+      const video = entry.target.querySelector('video');
+      if (!video) return;
       if (entry.isIntersecting) {
-        if (!slide.querySelector('iframe')) {
-          const iframe = document.createElement('iframe');
-          iframe.src = slide.dataset.src;
-          iframe.allow = 'autoplay; encrypted-media';
-          iframe.allowFullscreen = true;
-          slide.appendChild(iframe);
-        }
+        video.play().catch(() => {});
       } else {
-        // unload iframe when scrolled away to stop playback
-        const iframe = slide.querySelector('iframe');
-        if (iframe) iframe.remove();
+        video.pause();
       }
     });
   }, { threshold: 0.6 });
 
-  // infinite scroll
   feed.addEventListener('scroll', () => {
     if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - window.innerHeight * 2) {
       fetchClips();
     }
   });
 
-  init();
+  fetchClips();
 </script>
 
 </body>
