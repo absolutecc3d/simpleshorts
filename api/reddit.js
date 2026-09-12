@@ -6,12 +6,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  const url = `https://www.reddit.com/r/${subs}/hot.json?limit=25${after ? `&after=${after}` : ''}`;
+  const url = `https://old.reddit.com/r/${subs}/hot.json?limit=25${after ? `&after=${after}` : ''}`;
 
   try {
     const redditRes = await fetch(url, {
       headers: {
-        'User-Agent': 'simpleshorts-app/1.0 (by /u/yourusername)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
 
