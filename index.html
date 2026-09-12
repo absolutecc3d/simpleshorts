@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,22 +13,19 @@
   box-sizing: border-box;
 }
 
-html,
-body {
-  width: 100%;
+html, body {
   height: 100%;
   background: #000;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 #feed {
-  width: 100vw;
   height: 100vh;
+  width: 100vw;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
 }
 
 #feed::-webkit-scrollbar {
@@ -35,246 +33,184 @@ body {
 }
 
 #feed {
-  scrollbar-width: none;
   -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .slide {
-  position: relative;
-  width: 100vw;
   height: 100vh;
+  width: 100vw;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   background: #000;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
 .slide video {
-  width: 100%;
   height: 100%;
+  width: 100%;
   object-fit: contain;
   background: #000;
+  cursor: pointer;
+}
+
+#logo {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px 9px 9px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 15px;
+  background: rgba(15,15,15,.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: white;
   user-select: none;
-  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: black;
+  font-weight: 900;
+  font-size: 17px;
+}
+
+.logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+}
+
+.logo-name span {
+  opacity: .55;
+}
+
+#soundBanner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  background: rgba(20,20,20,.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  transition:
+    opacity .25s ease,
+    transform .25s ease;
+  pointer-events: none;
+}
+
+#soundBanner.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+.sound-icon {
+  font-size: 18px;
+}
+
+#pauseIndicator {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(.9);
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.58);
+  border: 1px solid rgba(255,255,255,.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  pointer-events: none;
+  animation: indicatorIn .15s ease forwards;
+}
+
+#pauseIndicator.visible {
+  display: flex;
+}
+
+.pause-bars {
+  display: flex;
+  gap: 8px;
+}
+
+.pause-bars div {
+  width: 9px;
+  height: 31px;
+  border-radius: 3px;
+  background: white;
+}
+
+.play-triangle {
+  width: 0;
+  height: 0;
+  border-top: 16px solid transparent;
+  border-bottom: 16px solid transparent;
+  border-left: 24px solid white;
+  margin-left: 5px;
+}
+
+@keyframes indicatorIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.75);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 #status {
   position: fixed;
+  bottom: 20px;
   left: 50%;
-  bottom: 18px;
   transform: translateX(-50%);
-  z-index: 50;
-  color: rgba(255, 255, 255, 0.55);
+  color: #888;
   font-size: 12px;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
+  z-index: 10;
 }
 
 #errorBox {
   position: fixed;
   inset: 0;
-  z-index: 100;
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 30px;
-  color: #fff;
-  background: #000;
-  text-align: center;
+  color: #ff6b6b;
   font-size: 14px;
-}
-
-#logo {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
+  padding: 24px;
+  text-align: center;
   z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 12px 7px 7px;
-  border-radius: 15px;
-  background: rgba(18, 18, 22, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  pointer-events: none;
-  user-select: none;
-}
-
-.logo-icon {
-  position: relative;
-  width: 27px;
-  height: 27px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  background: linear-gradient(145deg, #ffffff, #bcbcc2);
-  color: #111;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: -1px;
-  box-shadow:
-    0 3px 10px rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
-}
-
-.logo-icon::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  right: 4px;
-  top: 4px;
-  border-radius: 50%;
-  background: #111;
-  opacity: 0.18;
-}
-
-.logo-name {
-  color: #fff;
-  font-size: 13px;
-  line-height: 1;
-  font-weight: 750;
-  letter-spacing: -0.45px;
-  white-space: nowrap;
-}
-
-.logo-name span {
-  opacity: 0.5;
-  font-weight: 500;
-}
-
-.pause-indicator {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 100px;
-  height: 100px;
-  transform: translate(-50%, -50%) scale(0.72);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.28);
-  box-shadow:
-    0 12px 45px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease;
-}
-
-.pause-indicator.show {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.pause-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-}
-
-.pause-icon::before,
-.pause-icon::after {
-  content: "";
-  width: 10px;
-  height: 38px;
-  border-radius: 4px;
-  background: #fff;
-}
-
-.pause-icon::before {
-  margin-right: 7px;
-}
-
-.pause-icon::after {
-  margin-left: 7px;
-}
-
-.play-icon {
-  width: 0;
-  height: 0;
-  margin-left: 8px;
-  border-top: 22px solid transparent;
-  border-bottom: 22px solid transparent;
-  border-left: 34px solid #fff;
-}
-
-.play-indicator {
-  animation: indicatorPop 0.18s ease-out;
-}
-
-@keyframes indicatorPop {
-  from {
-    transform: translate(-50%, -50%) scale(0.65);
-  }
-
-  to {
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.loading-ring {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 42px;
-  height: 42px;
-  margin: -21px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  display: none;
-  pointer-events: none;
-}
-
-.loading-ring.show {
-  display: block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 600px) {
-  #logo {
-    right: 12px;
-    bottom: 12px;
-    padding: 6px 10px 6px 6px;
-    border-radius: 13px;
-  }
-
-  .logo-icon {
-    width: 25px;
-    height: 25px;
-  }
-
-  .logo-name {
-    font-size: 12px;
-  }
-
-  .pause-indicator {
-    width: 88px;
-    height: 88px;
-  }
 }
 </style>
 </head>
@@ -283,113 +219,88 @@ body {
 
 <div id="feed"></div>
 
+<div id="soundBanner">
+  <span class="sound-icon">🔊</span>
+  <span>Click anywhere to enable sound</span>
+</div>
+
+<div id="pauseIndicator">
+  <div id="indicatorContent"></div>
+</div>
+
 <div id="logo">
   <div class="logo-icon">S</div>
   <div class="logo-name">simple<span>clips.</span></div>
 </div>
 
 <div id="status">loading…</div>
-
 <div id="errorBox"></div>
 
 <script>
 const feed = document.getElementById("feed");
 const status = document.getElementById("status");
 const errorBox = document.getElementById("errorBox");
+const soundBanner = document.getElementById("soundBanner");
+const pauseIndicator = document.getElementById("pauseIndicator");
+const indicatorContent = document.getElementById("indicatorContent");
 
 let maxId = null;
 let pinnedInstance = null;
 let loading = false;
 let noMoreData = false;
+let soundEnabled = false;
+let userHasInteracted = false;
+let activeSlide = null;
 
 const seenClips = new Set();
 
-let soundEnabled = true;
-let userHasInteracted = false;
-
-function showError(message) {
-  errorBox.textContent = message;
+function showError(msg) {
+  errorBox.textContent = msg;
   errorBox.style.display = "flex";
   status.style.display = "none";
 }
 
-function createPauseIndicator(slide) {
-  const indicator = document.createElement("div");
-  indicator.className = "pause-indicator";
-
-  const icon = document.createElement("div");
-  icon.className = "pause-icon";
-
-  indicator.appendChild(icon);
-  slide.appendChild(indicator);
-
-  return indicator;
+function hideSoundBanner() {
+  soundBanner.classList.add("hidden");
 }
 
-function showPausedIndicator(indicator) {
-  indicator.innerHTML = "";
+function showPauseIndicator(paused) {
+  indicatorContent.innerHTML = "";
 
-  const icon = document.createElement("div");
-  icon.className = "pause-icon";
+  if (paused) {
+    const bars = document.createElement("div");
+    bars.className = "pause-bars";
 
-  indicator.appendChild(icon);
-  indicator.classList.remove("play-indicator");
-  indicator.classList.add("show");
-}
+    const bar1 = document.createElement("div");
+    const bar2 = document.createElement("div");
 
-function showPlayingIndicator(indicator) {
-  indicator.innerHTML = "";
+    bars.appendChild(bar1);
+    bars.appendChild(bar2);
 
-  const icon = document.createElement("div");
-  icon.className = "play-icon";
-
-  indicator.appendChild(icon);
-
-  indicator.classList.remove("show");
-  void indicator.offsetWidth;
-  indicator.classList.add("play-indicator", "show");
-
-  clearTimeout(indicator.timeout);
-
-  indicator.timeout = setTimeout(() => {
-    indicator.classList.remove("show", "play-indicator");
-  }, 500);
-}
-
-function hideIndicator(indicator) {
-  indicator.classList.remove("show", "play-indicator");
-}
-
-async function playVideo(video, indicator) {
-  video.muted = !soundEnabled;
-
-  try {
-    await video.play();
-    hideIndicator(indicator);
-    return true;
-  } catch (error) {
-    if (soundEnabled && !userHasInteracted) {
-      video.muted = true;
-
-      try {
-        await video.play();
-        return true;
-      } catch (fallbackError) {
-        console.warn("Autoplay failed:", fallbackError);
-        return false;
-      }
-    }
-
-    console.warn("Video playback failed:", error);
-    return false;
+    indicatorContent.appendChild(bars);
+  } else {
+    const triangle = document.createElement("div");
+    triangle.className = "play-triangle";
+    indicatorContent.appendChild(triangle);
   }
+
+  pauseIndicator.classList.remove("visible");
+
+  void pauseIndicator.offsetWidth;
+
+  pauseIndicator.classList.add("visible");
+
+  clearTimeout(window.indicatorTimeout);
+
+  window.indicatorTimeout = setTimeout(() => {
+    pauseIndicator.classList.remove("visible");
+  }, 650);
 }
 
-async function enableSoundAndPlayCurrent() {
+function enableSound() {
   userHasInteracted = true;
   soundEnabled = true;
-
-  const activeSlide = document.querySelector(".slide.active");
+  hideSoundBanner();
 
   if (!activeSlide) return;
 
@@ -399,10 +310,8 @@ async function enableSoundAndPlayCurrent() {
 
   video.muted = false;
 
-  try {
-    await video.play();
-  } catch (error) {
-    console.warn("Could not start audio:", error);
+  if (video.paused) {
+    video.play().catch(() => {});
   }
 }
 
@@ -423,55 +332,69 @@ async function fetchClips() {
       params.set("instance", pinnedInstance);
     }
 
-    const response = await fetch(`/api/mastodon?${params.toString()}`);
-    const data = await response.json();
+    const url = `/api/mastodon?${params.toString()}`;
 
-    if (!response.ok) {
-      console.error("Mastodon API error:", data);
-      showError("Error fetching clips.");
+    const res = await fetch(url);
+
+    const text = await res.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        `Server returned: ${text.slice(0, 150)}`
+      );
+    }
+
+    if (!res.ok) {
+      console.error("Mastodon fetch failed:", data);
+
+      showError(
+        `Error fetching clips: ${
+          data.error || JSON.stringify(data)
+        }`
+      );
+
       loading = false;
       return;
     }
 
     pinnedInstance = data.instance;
 
-    const clips = Array.isArray(data.clips)
-      ? data.clips
-      : [];
+    const clips = data.clips || [];
 
-    const previousMaxId = maxId;
-    maxId = data.nextMaxId || null;
+    maxId = data.nextMaxId;
 
-    const newClips = clips.filter(clip => {
-      if (!clip.id) return false;
-
-      if (seenClips.has(clip.id)) {
+    const newClips = clips.filter((clip) => {
+      if (!clip.id || seenClips.has(clip.id)) {
         return false;
       }
 
       seenClips.add(clip.id);
+
       return true;
     });
 
-    newClips.forEach(addSlide);
+    if (newClips.length === 0) {
+      if (maxId) {
+        loading = false;
+        await fetchClips();
+        return;
+      }
 
-    if (
-      newClips.length === 0 &&
-      maxId &&
-      maxId !== previousMaxId
-    ) {
+      noMoreData = true;
       loading = false;
-      await fetchClips();
+      status.style.display = "none";
       return;
     }
 
-    if (!maxId || clips.length === 0) {
-      noMoreData = true;
-    }
+    newClips.forEach(addSlide);
 
-  } catch (error) {
-    console.error(error);
-    showError("Network error: " + error.message);
+  } catch (e) {
+    console.error(e);
+    showError("Network error: " + e.message);
   }
 
   loading = false;
@@ -486,90 +409,66 @@ function addSlide(clip) {
 
   video.src = clip.url;
   video.loop = true;
+  video.muted = !soundEnabled;
   video.playsInline = true;
   video.preload = "metadata";
-  video.muted = !soundEnabled;
 
   slide.appendChild(video);
-
-  const pauseIndicator = createPauseIndicator(slide);
-
   feed.appendChild(slide);
 
   observer.observe(slide);
 
-  slide.addEventListener("click", async () => {
-    userHasInteracted = true;
+  slide.addEventListener("click", () => {
+    enableSound();
 
     if (video.paused) {
-      soundEnabled = true;
       video.muted = false;
 
-      const played = await playVideo(video, pauseIndicator);
-
-      if (played) {
-        showPlayingIndicator(pauseIndicator);
-      }
-
-      return;
+      video.play().then(() => {
+        showPauseIndicator(false);
+      }).catch(() => {});
+    } else {
+      video.pause();
+      showPauseIndicator(true);
     }
-
-    video.pause();
-    showPausedIndicator(pauseIndicator);
-  });
-
-  video.addEventListener("waiting", () => {
-    if (!video.paused) {
-      video.classList.add("buffering");
-    }
-  });
-
-  video.addEventListener("playing", () => {
-    video.classList.remove("buffering");
-  });
-
-  video.addEventListener("error", () => {
-    console.warn("Video failed to load:", clip.url);
   });
 }
 
-const observer = new IntersectionObserver(async entries => {
-  for (const entry of entries) {
-    const slide = entry.target;
-    const video = slide.querySelector("video");
-    const pauseIndicator = slide.querySelector(".pause-indicator");
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    const video = entry.target.querySelector("video");
 
-    if (!video) continue;
+    if (!video) return;
 
     if (entry.isIntersecting) {
-      document.querySelectorAll(".slide.active").forEach(other => {
-        if (other !== slide) {
-          other.classList.remove("active");
+      activeSlide = entry.target;
 
-          const otherVideo = other.querySelector("video");
-
-          if (otherVideo) {
-            otherVideo.pause();
-          }
-        }
-      });
-
-      slide.classList.add("active");
-
-      const played = await playVideo(video, pauseIndicator);
-
-      if (played) {
-        hideIndicator(pauseIndicator);
+      if (soundEnabled) {
+        video.muted = false;
+      } else {
+        video.muted = true;
       }
+
+      video.play().catch(() => {});
 
     } else {
       video.pause();
-      hideIndicator(pauseIndicator);
-      slide.classList.remove("active");
+
+      if (activeSlide === entry.target) {
+        activeSlide = null;
+      }
     }
-  }
+  });
 }, {
-  threshold: 0.65
+  threshold: 0.6
+});
+
+document.addEventListener("pointerdown", () => {
+  enableSound();
+});
+
+document.addEventListener("keydown", () => {
+  enableSound();
 });
 
 feed.addEventListener("scroll", () => {
@@ -579,19 +478,6 @@ feed.addEventListener("scroll", () => {
   ) {
     fetchClips();
   }
-});
-
-document.addEventListener("pointerdown", () => {
-  enableSoundAndPlayCurrent();
-}, {
-  once: true,
-  passive: true
-});
-
-document.addEventListener("keydown", () => {
-  enableSoundAndPlayCurrent();
-}, {
-  once: true
 });
 
 fetchClips();
