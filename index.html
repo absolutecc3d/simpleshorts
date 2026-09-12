@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>simpleclips.</title>
-
 <style>
 * {
   margin: 0;
@@ -14,6 +13,7 @@
 }
 
 html, body {
+  width: 100%;
   height: 100%;
   background: #000;
   overflow: hidden;
@@ -21,40 +21,90 @@ html, body {
 }
 
 #feed {
-  height: 100vh;
   width: 100vw;
+  height: 100vh;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  scrollbar-width: none;
 }
 
 #feed::-webkit-scrollbar {
   display: none;
 }
 
-#feed {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
 .slide {
-  height: 100vh;
   width: 100vw;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  height: 100vh;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   background: #000;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .slide video {
-  height: 100%;
   width: 100%;
+  height: 100%;
   object-fit: contain;
   background: #000;
   cursor: pointer;
+}
+
+#soundOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  cursor: pointer;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#soundOverlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.soundCard {
+  width: min(90vw, 420px);
+  padding: 32px 28px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 24px;
+  background: rgba(25,25,25,.75);
+  box-shadow: 0 20px 70px rgba(0,0,0,.5);
+}
+
+.soundIcon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #000;
+  font-size: 34px;
+}
+
+.soundTitle {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.soundText {
+  color: rgba(255,255,255,.65);
+  font-size: 14px;
 }
 
 #logo {
@@ -99,46 +149,11 @@ html, body {
   opacity: .55;
 }
 
-#soundBanner {
-  position: fixed;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  border: 1px solid rgba(255,255,255,.2);
-  border-radius: 999px;
-  background: rgba(20,20,20,.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 8px 30px rgba(0,0,0,.35);
-  transition:
-    opacity .25s ease,
-    transform .25s ease;
-  pointer-events: none;
-}
-
-#soundBanner.hidden {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-12px);
-}
-
-.sound-icon {
-  font-size: 18px;
-}
-
 #pauseIndicator {
   position: fixed;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%) scale(.9);
+  transform: translate(-50%, -50%);
   width: 86px;
   height: 86px;
   border-radius: 50%;
@@ -151,7 +166,6 @@ html, body {
   justify-content: center;
   z-index: 40;
   pointer-events: none;
-  animation: indicatorIn .15s ease forwards;
 }
 
 #pauseIndicator.visible {
@@ -177,17 +191,6 @@ html, body {
   border-bottom: 16px solid transparent;
   border-left: 24px solid white;
   margin-left: 5px;
-}
-
-@keyframes indicatorIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(.75);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
 }
 
 #status {
@@ -219,9 +222,12 @@ html, body {
 
 <div id="feed"></div>
 
-<div id="soundBanner">
-  <span class="sound-icon">🔊</span>
-  <span>Click anywhere to enable sound</span>
+<div id="soundOverlay">
+  <div class="soundCard">
+    <div class="soundIcon">🔊</div>
+    <div class="soundTitle">Enable sound</div>
+    <div class="soundText">Click anywhere to enable sound and start watching</div>
+  </div>
 </div>
 
 <div id="pauseIndicator">
@@ -240,7 +246,7 @@ html, body {
 const feed = document.getElementById("feed");
 const status = document.getElementById("status");
 const errorBox = document.getElementById("errorBox");
-const soundBanner = document.getElementById("soundBanner");
+const soundOverlay = document.getElementById("soundOverlay");
 const pauseIndicator = document.getElementById("pauseIndicator");
 const indicatorContent = document.getElementById("indicatorContent");
 
@@ -249,19 +255,14 @@ let pinnedInstance = null;
 let loading = false;
 let noMoreData = false;
 let soundEnabled = false;
-let userHasInteracted = false;
 let activeSlide = null;
 
 const seenClips = new Set();
 
-function showError(msg) {
-  errorBox.textContent = msg;
+function showError(message) {
+  errorBox.textContent = message;
   errorBox.style.display = "flex";
   status.style.display = "none";
-}
-
-function hideSoundBanner() {
-  soundBanner.classList.add("hidden");
 }
 
 function showPauseIndicator(paused) {
@@ -271,11 +272,8 @@ function showPauseIndicator(paused) {
     const bars = document.createElement("div");
     bars.className = "pause-bars";
 
-    const bar1 = document.createElement("div");
-    const bar2 = document.createElement("div");
-
-    bars.appendChild(bar1);
-    bars.appendChild(bar2);
+    bars.appendChild(document.createElement("div"));
+    bars.appendChild(document.createElement("div"));
 
     indicatorContent.appendChild(bars);
   } else {
@@ -284,23 +282,18 @@ function showPauseIndicator(paused) {
     indicatorContent.appendChild(triangle);
   }
 
-  pauseIndicator.classList.remove("visible");
-
-  void pauseIndicator.offsetWidth;
-
   pauseIndicator.classList.add("visible");
 
-  clearTimeout(window.indicatorTimeout);
+  clearTimeout(window.pauseIndicatorTimeout);
 
-  window.indicatorTimeout = setTimeout(() => {
+  window.pauseIndicatorTimeout = setTimeout(() => {
     pauseIndicator.classList.remove("visible");
   }, 650);
 }
 
 function enableSound() {
-  userHasInteracted = true;
   soundEnabled = true;
-  hideSoundBanner();
+  soundOverlay.classList.add("hidden");
 
   if (!activeSlide) return;
 
@@ -314,6 +307,12 @@ function enableSound() {
     video.play().catch(() => {});
   }
 }
+
+soundOverlay.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  enableSound();
+});
 
 async function fetchClips() {
   if (loading || noMoreData) return;
@@ -332,11 +331,11 @@ async function fetchClips() {
       params.set("instance", pinnedInstance);
     }
 
-    const url = `/api/mastodon?${params.toString()}`;
+    const response = await fetch(
+      `/api/mastodon?${params.toString()}`
+    );
 
-    const res = await fetch(url);
-
-    const text = await res.text();
+    const text = await response.text();
 
     let data;
 
@@ -348,24 +347,16 @@ async function fetchClips() {
       );
     }
 
-    if (!res.ok) {
-      console.error("Mastodon fetch failed:", data);
-
-      showError(
-        `Error fetching clips: ${
-          data.error || JSON.stringify(data)
-        }`
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Failed to fetch clips"
       );
-
-      loading = false;
-      return;
     }
 
     pinnedInstance = data.instance;
+    maxId = data.nextMaxId;
 
     const clips = data.clips || [];
-
-    maxId = data.nextMaxId;
 
     const newClips = clips.filter((clip) => {
       if (!clip.id || seenClips.has(clip.id)) {
@@ -373,7 +364,6 @@ async function fetchClips() {
       }
 
       seenClips.add(clip.id);
-
       return true;
     });
 
@@ -391,10 +381,9 @@ async function fetchClips() {
     }
 
     newClips.forEach(addSlide);
-
-  } catch (e) {
-    console.error(e);
-    showError("Network error: " + e.message);
+  } catch (error) {
+    console.error(error);
+    showError("Network error: " + error.message);
   }
 
   loading = false;
@@ -418,15 +407,17 @@ function addSlide(clip) {
 
   observer.observe(slide);
 
-  slide.addEventListener("click", () => {
-    enableSound();
+  slide.addEventListener("click", (event) => {
+    event.stopPropagation();
 
     if (video.paused) {
       video.muted = false;
 
-      video.play().then(() => {
-        showPauseIndicator(false);
-      }).catch(() => {});
+      video.play()
+        .then(() => {
+          showPauseIndicator(false);
+        })
+        .catch(() => {});
     } else {
       video.pause();
       showPauseIndicator(true);
@@ -434,42 +425,32 @@ function addSlide(clip) {
   });
 }
 
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    const video = entry.target.querySelector("video");
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target.querySelector("video");
 
-    if (!video) return;
+      if (!video) return;
 
-    if (entry.isIntersecting) {
-      activeSlide = entry.target;
+      if (entry.isIntersecting) {
+        activeSlide = entry.target;
 
-      if (soundEnabled) {
-        video.muted = false;
+        video.muted = !soundEnabled;
+
+        video.play().catch(() => {});
       } else {
-        video.muted = true;
+        video.pause();
+
+        if (activeSlide === entry.target) {
+          activeSlide = null;
+        }
       }
-
-      video.play().catch(() => {});
-
-    } else {
-      video.pause();
-
-      if (activeSlide === entry.target) {
-        activeSlide = null;
-      }
-    }
-  });
-}, {
-  threshold: 0.6
-});
-
-document.addEventListener("pointerdown", () => {
-  enableSound();
-});
-
-document.addEventListener("keydown", () => {
-  enableSound();
-});
+    });
+  },
+  {
+    threshold: 0.6
+  }
+);
 
 feed.addEventListener("scroll", () => {
   if (
