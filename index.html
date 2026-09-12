@@ -1,10 +1,10 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>simpleclips.</title>
+
 <style>
 * {
   margin: 0;
@@ -12,7 +12,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   background: #000;
@@ -21,11 +22,12 @@ html, body {
 }
 
 #feed {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100dvh;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
+  overscroll-behavior-y: contain;
 }
 
 #feed::-webkit-scrollbar {
@@ -33,8 +35,9 @@ html, body {
 }
 
 .slide {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   position: relative;
   display: flex;
   align-items: center;
@@ -42,12 +45,17 @@ html, body {
   background: #000;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  overflow: hidden;
 }
 
 .slide video {
+  display: block;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center center;
   background: #000;
   cursor: pointer;
 }
@@ -76,10 +84,10 @@ html, body {
   width: min(90vw, 420px);
   padding: 32px 28px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 24px;
-  background: rgba(25,25,25,.75);
-  box-shadow: 0 20px 70px rgba(0,0,0,.5);
+  background: rgba(25, 25, 25, 0.75);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
 }
 
 .soundIcon {
@@ -103,50 +111,8 @@ html, body {
 }
 
 .soundText {
-  color: rgba(255,255,255,.65);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 14px;
-}
-
-#logo {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 13px 9px 9px;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 15px;
-  background: rgba(15,15,15,.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: white;
-  user-select: none;
-  pointer-events: none;
-}
-
-.logo-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  color: black;
-  font-weight: 900;
-  font-size: 17px;
-}
-
-.logo-name {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -.3px;
-}
-
-.logo-name span {
-  opacity: .55;
 }
 
 #pauseIndicator {
@@ -157,8 +123,8 @@ html, body {
   width: 86px;
   height: 86px;
   border-radius: 50%;
-  background: rgba(0,0,0,.58);
-  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(0, 0, 0, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: none;
@@ -181,7 +147,7 @@ html, body {
   width: 9px;
   height: 31px;
   border-radius: 3px;
-  background: white;
+  background: #fff;
 }
 
 .play-triangle {
@@ -189,8 +155,50 @@ html, body {
   height: 0;
   border-top: 16px solid transparent;
   border-bottom: 16px solid transparent;
-  border-left: 24px solid white;
+  border-left: 24px solid #fff;
   margin-left: 5px;
+}
+
+#logo {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px 9px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  background: rgba(15, 15, 15, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #fff;
+  user-select: none;
+  pointer-events: none;
+}
+
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #000;
+  font-weight: 900;
+  font-size: 17px;
+}
+
+.logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.logo-name span {
+  opacity: 0.55;
 }
 
 #status {
@@ -215,6 +223,14 @@ html, body {
   text-align: center;
   z-index: 60;
 }
+
+@supports not (height: 100dvh) {
+  #feed,
+  .slide {
+    height: 100vh;
+    min-height: 100vh;
+  }
+}
 </style>
 </head>
 
@@ -226,7 +242,9 @@ html, body {
   <div class="soundCard">
     <div class="soundIcon">🔊</div>
     <div class="soundTitle">Enable sound</div>
-    <div class="soundText">Click anywhere to enable sound and start watching</div>
+    <div class="soundText">
+      Click anywhere to enable sound and start watching
+    </div>
   </div>
 </div>
 
@@ -293,7 +311,16 @@ function showPauseIndicator(paused) {
 
 function enableSound() {
   soundEnabled = true;
+
   soundOverlay.classList.add("hidden");
+
+  if (!activeSlide) {
+    const firstSlide = feed.querySelector(".slide");
+
+    if (firstSlide) {
+      activeSlide = firstSlide;
+    }
+  }
 
   if (!activeSlide) return;
 
@@ -303,14 +330,13 @@ function enableSound() {
 
   video.muted = false;
 
-  if (video.paused) {
-    video.play().catch(() => {});
-  }
+  video.play().catch(() => {});
 }
 
 soundOverlay.addEventListener("click", (event) => {
   event.preventDefault();
   event.stopPropagation();
+
   enableSound();
 });
 
@@ -364,6 +390,7 @@ async function fetchClips() {
       }
 
       seenClips.add(clip.id);
+
       return true;
     });
 
@@ -381,6 +408,22 @@ async function fetchClips() {
     }
 
     newClips.forEach(addSlide);
+
+    if (!activeSlide) {
+      const firstSlide = feed.querySelector(".slide");
+
+      if (firstSlide) {
+        activeSlide = firstSlide;
+
+        const firstVideo =
+          firstSlide.querySelector("video");
+
+        if (firstVideo) {
+          firstVideo.muted = !soundEnabled;
+          firstVideo.play().catch(() => {});
+        }
+      }
+    }
   } catch (error) {
     console.error(error);
     showError("Network error: " + error.message);
@@ -400,6 +443,7 @@ function addSlide(clip) {
   video.loop = true;
   video.muted = !soundEnabled;
   video.playsInline = true;
+  video.setAttribute("playsinline", "");
   video.preload = "metadata";
 
   slide.appendChild(video);
@@ -459,6 +503,13 @@ feed.addEventListener("scroll", () => {
   ) {
     fetchClips();
   }
+});
+
+window.addEventListener("resize", () => {
+  document.documentElement.style.setProperty(
+    "--viewport-height",
+    `${window.innerHeight}px`
+  );
 });
 
 fetchClips();
