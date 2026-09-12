@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const { maxId, instance: pinnedInstance } = req.query;
 
   res.setHeader("Access-Control-Allow-Origin", "*");
-
+Network error: Unexpected token 'A', "A server e"... is not valid JSON
   const instancesToTry = pinnedInstance
     ? [pinnedInstance]
     : INSTANCES;
