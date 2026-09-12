@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>simpleclips</title>
+<title>simpleclips.</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -73,6 +73,7 @@
   const errorBox = document.getElementById('errorBox');
 
   let maxId = null;
+  let pinnedInstance = null;
   let loading = false;
   let noMoreData = false;
 
@@ -88,7 +89,10 @@
     status.style.display = 'block';
 
     try {
-      const url = `/api/mastodon${maxId ? '?maxId=' + maxId : ''}`;
+      const params = new URLSearchParams();
+      if (maxId) params.set('maxId', maxId);
+      if (pinnedInstance) params.set('instance', pinnedInstance);
+      const url = `/api/mastodon?${params.toString()}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -99,6 +103,7 @@
         return;
       }
 
+      pinnedInstance = data.instance;
       const clips = data.clips || [];
       maxId = data.nextMaxId;
 
