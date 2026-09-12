@@ -20,7 +20,8 @@ export default async function handler(req, res) {
         const parsed = JSON.parse(bodyText);
         publicKey = parsed.publicKey || parsed.data || parsed.key;
       } catch {
-        publicKey = bodyText.replace(/"/g, '').trim();
+        const match = bodyText.match(/pub_[A-Za-z0-9]+/);
+        publicKey = match ? match[0] : bodyText.replace(/"/g, '').trim();
       }
 
       res.status(200).json({ publicKey, raw: bodyText });
