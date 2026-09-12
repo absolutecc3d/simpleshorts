@@ -4,167 +4,325 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>simpleclips.</title>
+
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    height: 100%;
-    background: #000;
-    overflow: hidden;
-    font-family: -apple-system, sans-serif;
-  }
-  #feed {
-    height: 100vh;
-    width: 100vw;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
-  }
-  .slide {
-    height: 100vh;
-    width: 100vw;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    background: #000;
-  }
-  .slide video {
-    height: 100%;
-    width: 100%;
-    object-fit: contain;
-    background: #000;
-  }
-  #feed::-webkit-scrollbar { display: none; }
-  #feed { -ms-overflow-style: none; scrollbar-width: none; }
-  #status {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #888;
-    font-size: 12px;
-    z-index: 10;
-  }
-  #errorBox {
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: #ff6b6b;
-    font-size: 14px;
-    padding: 24px;
-    text-align: center;
-    z-index: 20;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#feed {
+  height: 100vh;
+  width: 100vw;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.slide {
+  height: 100vh;
+  width: 100vw;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #000;
+}
+
+.slide video {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+#feed::-webkit-scrollbar {
+  display: none;
+}
+
+#feed {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+#status {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #888;
+  font-size: 12px;
+  z-index: 10;
+}
+
+#errorBox {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b6b;
+  font-size: 14px;
+  padding: 24px;
+  text-align: center;
+  z-index: 20;
+}
+
+#logo {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 15;
+  padding: 7px 11px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  user-select: none;
+  pointer-events: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.sound-indicator {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  font-size: 19px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.sound-indicator.show {
+  opacity: 1;
+}
 </style>
 </head>
+
 <body>
 
 <div id="feed"></div>
+
+<div id="logo">simpleclips.</div>
+
 <div id="status">loading…</div>
+
 <div id="errorBox"></div>
 
 <script>
-  const feed = document.getElementById('feed');
-  const status = document.getElementById('status');
-  const errorBox = document.getElementById('errorBox');
+const feed = document.getElementById('feed');
+const status = document.getElementById('status');
+const errorBox = document.getElementById('errorBox');
 
-  let maxId = null;
-  let pinnedInstance = null;
-  let loading = false;
-  let noMoreData = false;
+let maxId = null;
+let pinnedInstance = null;
+let loading = false;
+let noMoreData = false;
 
-  function showError(msg) {
-    errorBox.textContent = msg;
-    errorBox.style.display = 'flex';
-    status.style.display = 'none';
+const seenClips = new Set();
+
+let soundEnabled = false;
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = 'flex';
+  status.style.display = 'none';
+}
+
+async function fetchClips() {
+  if (loading || noMoreData) return;
+
+  loading = true;
+  status.style.display = 'block';
+
+  try {
+    const params = new URLSearchParams();
+
+    if (maxId) {
+      params.set('maxId', maxId);
+    }
+
+    if (pinnedInstance) {
+      params.set('instance', pinnedInstance);
+    }
+
+    const url = `/api/mastodon?${params.toString()}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error('Mastodon fetch failed:', data);
+      showError(`Error fetching clips: ${JSON.stringify(data)}`);
+      loading = false;
+      return;
+    }
+
+    pinnedInstance = data.instance;
+
+    const clips = data.clips || [];
+
+    maxId = data.nextMaxId || null;
+
+    const newClips = clips.filter(clip => {
+      if (!clip.id || seenClips.has(clip.id)) {
+        return false;
+      }
+
+      seenClips.add(clip.id);
+      return true;
+    });
+
+    if (newClips.length === 0) {
+      if (maxId && maxId !== data.previousMaxId) {
+        loading = false;
+        await fetchClips();
+        return;
+      }
+
+      noMoreData = true;
+      status.style.display = 'none';
+      loading = false;
+      return;
+    }
+
+    newClips.forEach(addSlide);
+
+  } catch (e) {
+    console.error(e);
+    showError('Network error: ' + e.message);
   }
 
-  async function fetchClips() {
-    if (loading || noMoreData) return;
-    loading = true;
-    status.style.display = 'block';
+  loading = false;
+  status.style.display = 'none';
+}
+
+function createSoundIndicator(slide) {
+  const indicator = document.createElement('div');
+  indicator.className = 'sound-indicator';
+  indicator.textContent = soundEnabled ? '🔊' : '🔇';
+
+  slide.appendChild(indicator);
+
+  return indicator;
+}
+
+function showSoundIndicator(indicator) {
+  indicator.classList.add('show');
+
+  clearTimeout(indicator.hideTimeout);
+
+  indicator.hideTimeout = setTimeout(() => {
+    indicator.classList.remove('show');
+  }, 700);
+}
+
+function addSlide(clip) {
+  const slide = document.createElement('div');
+  slide.className = 'slide';
+
+  const video = document.createElement('video');
+
+  video.src = clip.url;
+  video.loop = true;
+  video.muted = !soundEnabled;
+  video.playsInline = true;
+  video.preload = 'metadata';
+
+  slide.appendChild(video);
+
+  const soundIndicator = createSoundIndicator(slide);
+
+  feed.appendChild(slide);
+
+  observer.observe(slide);
+
+  slide.addEventListener('click', async () => {
+    soundEnabled = !soundEnabled;
+
+    video.muted = !soundEnabled;
+
+    soundIndicator.textContent = soundEnabled ? '🔊' : '🔇';
+
+    showSoundIndicator(soundIndicator);
 
     try {
-      const params = new URLSearchParams();
-      if (maxId) params.set('maxId', maxId);
-      if (pinnedInstance) params.set('instance', pinnedInstance);
-      const url = `/api/mastodon?${params.toString()}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error('Mastodon fetch failed:', data);
-        showError(`Error fetching clips: ${JSON.stringify(data)}`);
-        loading = false;
-        return;
-      }
-
-      pinnedInstance = data.instance;
-      const clips = data.clips || [];
-      maxId = data.nextMaxId;
-
-      if (clips.length === 0) {
-        loading = false;
-        status.style.display = 'none';
-        if (maxId) fetchClips();
-        else noMoreData = true;
-        return;
-      }
-
-      clips.forEach(addSlide);
+      await video.play();
     } catch (e) {
-      console.error(e);
-      showError('Network error: ' + e.message);
+      console.warn('Video playback failed:', e);
     }
 
-    loading = false;
-    status.style.display = 'none';
-  }
-
-  function addSlide(clip) {
-    const slide = document.createElement('div');
-    slide.className = 'slide';
-
-    const video = document.createElement('video');
-    video.src = clip.url;
-    video.loop = true;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-
-    slide.appendChild(video);
-    feed.appendChild(slide);
-    observer.observe(slide);
-
-    slide.addEventListener('click', () => {
-      if (video.paused) video.play();
-      video.muted = !video.muted;
-    });
-  }
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      const video = entry.target.querySelector('video');
-      if (!video) return;
-      if (entry.isIntersecting) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
+    document.querySelectorAll('.slide video').forEach(otherVideo => {
+      if (otherVideo !== video) {
+        otherVideo.muted = !soundEnabled;
       }
     });
-  }, { threshold: 0.6 });
+  });
+}
 
-  feed.addEventListener('scroll', () => {
-    if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - window.innerHeight * 2) {
-      fetchClips();
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(async (entry) => {
+    const video = entry.target.querySelector('video');
+
+    if (!video) return;
+
+    if (entry.isIntersecting) {
+      video.muted = !soundEnabled;
+
+      try {
+        await video.play();
+      } catch (e) {
+        video.muted = true;
+
+        try {
+          await video.play();
+        } catch (e2) {}
+      }
+    } else {
+      video.pause();
     }
   });
+}, {
+  threshold: 0.6
+});
 
-  fetchClips();
+feed.addEventListener('scroll', () => {
+  if (
+    feed.scrollTop + feed.clientHeight >=
+    feed.scrollHeight - window.innerHeight * 2
+  ) {
+    fetchClips();
+  }
+});
+
+fetchClips();
 </script>
 
 </body>
