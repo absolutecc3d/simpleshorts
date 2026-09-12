@@ -91,6 +91,8 @@
         method: 'POST'
       });
       const keyText = await keyRes.text();
+      console.log('Raw key response:', keyText);
+
       let parsedKey;
       try {
         const parsed = JSON.parse(keyText);
@@ -99,15 +101,17 @@
         parsedKey = keyText.replace(/"/g, '').trim();
       }
       apiKey = parsedKey;
+      console.log('Using API key:', apiKey);
 
       if (!apiKey || apiKey.length < 5) {
-        showError('Could not generate a Medal API key. Medal\'s API may have changed or be temporarily unavailable.');
+        showError('Could not generate a Medal API key. Medal\'s API may have changed or be temporarily unavailable. Raw response: ' + keyText);
         return;
       }
 
       fetchClips();
     } catch (e) {
-      showError('Could not reach Medal\'s API to generate a key. Check your connection and try again.');
+      console.error(e);
+      showError('Could not reach Medal\'s API to generate a key: ' + e.message);
     }
   }
 
@@ -123,7 +127,9 @@
       });
 
       if (!res.ok) {
-        showError(`Medal API error (${res.status}). Your key may be invalid or rate-limited.`);
+        const bodyText = await res.text();
+        console.error('Trending fetch failed:', res.status, bodyText);
+        showError(`Medal API error (${res.status}). Key used: ${apiKey}. Response: ${bodyText}`);
         loading = false;
         return;
       }
