@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>simplemedal.</title>
+<title>Scroll</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -88,7 +88,7 @@
   async function init() {
     try {
       const keyRes = await fetch('https://developers.medal.tv/v1/generate_public_key', {
-        method: 'POST'
+        method: 'GET'
       });
       const keyText = await keyRes.text();
       console.log('Raw key response:', keyText);
