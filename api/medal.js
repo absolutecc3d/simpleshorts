@@ -38,7 +38,11 @@ export default async function handler(req, res) {
       const url = `https://developers.medal.tv/v1/trending?categoryId=${cat}&limit=10&offset=${off}`;
 
       const trendingRes = await fetch(url, {
-        headers: { 'Authorization': key }
+        headers: {
+          'Authorization': key,
+          'publicKey': key,
+          'x-api-key': key
+        }
       });
       const bodyText = await trendingRes.text();
 
