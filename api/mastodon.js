@@ -1,13 +1,14 @@
+```js
 const INSTANCES = [
-  'mas.to',
-  'fosstodon.org',
-  'mastodon.social'
+  "mas.to",
+  "fosstodon.org",
+  "mastodon.social"
 ];
 
 export default async function handler(req, res) {
   const { maxId, instance: pinnedInstance } = req.query;
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader("Access-Control-Allow-Origin", "*");
 
   const instancesToTry = pinnedInstance
     ? [pinnedInstance]
@@ -17,87 +18,117 @@ export default async function handler(req, res) {
     try {
       const params = new URLSearchParams();
 
-      params.set('only_media', 'true');
-      params.set('limit', '40');
+      params.set("only_media", "true");
+      params.set("limit", "40");
 
       if (maxId) {
-        params.set('max_id', maxId);
+        params.set("max_id", maxId);
       }
 
       const url =
         `https://${instance}/api/v1/timelines/public?${params.toString()}`;
 
-      const r = await fetch(url, {
+      const response = await fetch(url, {
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json"
         }
       });
 
-      const bodyText = await r.text();
+      const text = await response.text();
 
-      if (!r.ok) {
-        console.error(`${instance} failed:`, bodyText);
+      if (!response.ok) {
+        console.error(`${instance} returned ${response.status}:`, text);
         continue;
       }
 
-      const statuses = JSON.parse(bodyText);
+      let statuses;
+
+      try {
+        statuses = JSON.parse(text);
+      } catch (error) {
+        console.error(`${instance} returned invalid JSON:`, text);
+        continue;
+      }
+
+      if (!Array.isArray(statuses)) {
+        console.error(`${instance} returned unexpected data`);
+        continue;
+      }
 
       const clips = [];
-      const seenStatusIds = new Set();
+      const seenStatuses = new Set();
+      const seenMedia = new Set();
 
-      statuses.forEach((status) => {
-        if (!status || !status.id) return;
+      for (const status of statuses) {
+        if (!status || !status.id) {
+          continue;
+        }
 
-        if (status.sensitive) return;
+        if (status.sensitive) {
+          continue;
+        }
 
-        if (seenStatusIds.has(status.id)) return;
+        if (seenStatuses.has(status.id)) {
+          continue;
+        }
 
-        seenStatusIds.add(status.id);
+        seenStatuses.add(status.id);
 
-        (status.media_attachments || []).forEach((media) => {
+        const attachments = Array.isArray(status.media_attachments)
+          ? status.media_attachments
+          : [];
+
+        for (const media of attachments) {
           if (
-            media.type === 'video' ||
-            media.type === 'gifv'
+            media.type !== "video" &&
+            media.type !== "gifv"
           ) {
-            if (!media.url) return;
-
-            clips.push({
-              id: `${status.id}-${media.id}`,
-              statusId: status.id,
-              mediaId: media.id,
-              url: media.url,
-              width: media.meta?.original?.width || null,
-              height: media.meta?.original?.height || null
-            });
+            continue;
           }
-        });
-      });
+
+          if (!media.url) {
+            continue;
+          }
+
+          if (seenMedia.has(media.id)) {
+            continue;
+          }
+
+          seenMedia.add(media.id);
+
+          clips.push({
+            id: `${status.id}-${media.id}`,
+            statusId: status.id,
+            mediaId: media.id,
+            url: media.url,
+            width: media.meta?.original?.width || null,
+            height: media.meta?.original?.height || null
+          });
+        }
+      }
 
       const lastStatus =
         statuses.length > 0
           ? statuses[statuses.length - 1]
           : null;
 
-      const lastId =
-        lastStatus?.id || null;
+      const nextMaxId = lastStatus?.id || null;
 
-      res.status(200).json({
+      return res.status(200).json({
         clips,
-        nextMaxId: lastId,
+        nextMaxId,
         previousMaxId: maxId || null,
         instance
       });
 
-      return;
-
-    } catch (e) {
-      console.error(`${instance} errored:`, e);
-      continue;
+    } catch (error) {
+      console.error(`${instance} failed:`, error);
     }
   }
 
-  res.status(502).json({
-    error: 'all instances failed',
+  return res.status(502).json({
+    error: "All Mastodon instances failed.",
     tried: instancesToTry
   });
 }
+```
