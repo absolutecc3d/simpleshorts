@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>simpleclips.</title>
 
 <style>
@@ -14,7 +14,6 @@
 
 html,
 body {
-  width: 100%;
   height: 100%;
   background: #000;
   overflow: hidden;
@@ -22,12 +21,12 @@ body {
 }
 
 #feed {
-  width: 100%;
-  height: 100dvh;
+  height: 100vh;
+  width: 100vw;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
   scrollbar-width: none;
-  overscroll-behavior-y: contain;
 }
 
 #feed::-webkit-scrollbar {
@@ -35,16 +34,15 @@ body {
 }
 
 .slide {
-  width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
-  position: relative;
+  height: 100vh;
+  width: 100vw;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   background: #000;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   overflow: hidden;
 }
 
@@ -52,8 +50,6 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
   object-fit: contain;
   object-position: center center;
   background: #000;
@@ -119,12 +115,12 @@ body {
   position: fixed;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(.9);
   width: 86px;
   height: 86px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, .58);
+  border: 1px solid rgba(255, 255, 255, .2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: none;
@@ -132,6 +128,7 @@ body {
   justify-content: center;
   z-index: 40;
   pointer-events: none;
+  animation: indicatorIn .15s ease forwards;
 }
 
 #pauseIndicator.visible {
@@ -159,6 +156,18 @@ body {
   margin-left: 5px;
 }
 
+@keyframes indicatorIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.75);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 #logo {
   position: fixed;
   right: 24px;
@@ -168,9 +177,9 @@ body {
   align-items: center;
   gap: 9px;
   padding: 9px 13px 9px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, .15);
   border-radius: 15px;
-  background: rgba(15, 15, 15, 0.55);
+  background: rgba(15, 15, 15, .55);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: #fff;
@@ -194,11 +203,11 @@ body {
 .logo-name {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -.3px;
 }
 
 .logo-name span {
-  opacity: 0.55;
+  opacity: .55;
 }
 
 #status {
@@ -224,11 +233,25 @@ body {
   z-index: 60;
 }
 
-@supports not (height: 100dvh) {
-  #feed,
-  .slide {
-    height: 100vh;
-    min-height: 100vh;
+@media (max-width: 600px) {
+  .slide,
+  #feed {
+    height: 100svh;
+  }
+
+  .slide video {
+    height: 100%;
+    width: 100%;
+    object-position: center center;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 600px) {
+    .slide,
+    #feed {
+      height: 100dvh;
+    }
   }
 }
 </style>
@@ -300,26 +323,25 @@ function showPauseIndicator(paused) {
     indicatorContent.appendChild(triangle);
   }
 
+  pauseIndicator.classList.remove("visible");
+
+  void pauseIndicator.offsetWidth;
+
   pauseIndicator.classList.add("visible");
 
-  clearTimeout(window.pauseIndicatorTimeout);
+  clearTimeout(window.indicatorTimeout);
 
-  window.pauseIndicatorTimeout = setTimeout(() => {
+  window.indicatorTimeout = setTimeout(() => {
     pauseIndicator.classList.remove("visible");
   }, 650);
 }
 
 function enableSound() {
   soundEnabled = true;
-
   soundOverlay.classList.add("hidden");
 
   if (!activeSlide) {
-    const firstSlide = feed.querySelector(".slide");
-
-    if (firstSlide) {
-      activeSlide = firstSlide;
-    }
+    activeSlide = feed.querySelector(".slide");
   }
 
   if (!activeSlide) return;
@@ -330,13 +352,14 @@ function enableSound() {
 
   video.muted = false;
 
-  video.play().catch(() => {});
+  if (video.paused) {
+    video.play().catch(() => {});
+  }
 }
 
 soundOverlay.addEventListener("click", (event) => {
   event.preventDefault();
   event.stopPropagation();
-
   enableSound();
 });
 
@@ -390,7 +413,6 @@ async function fetchClips() {
       }
 
       seenClips.add(clip.id);
-
       return true;
     });
 
@@ -408,22 +430,6 @@ async function fetchClips() {
     }
 
     newClips.forEach(addSlide);
-
-    if (!activeSlide) {
-      const firstSlide = feed.querySelector(".slide");
-
-      if (firstSlide) {
-        activeSlide = firstSlide;
-
-        const firstVideo =
-          firstSlide.querySelector("video");
-
-        if (firstVideo) {
-          firstVideo.muted = !soundEnabled;
-          firstVideo.play().catch(() => {});
-        }
-      }
-    }
   } catch (error) {
     console.error(error);
     showError("Network error: " + error.message);
@@ -503,13 +509,6 @@ feed.addEventListener("scroll", () => {
   ) {
     fetchClips();
   }
-});
-
-window.addEventListener("resize", () => {
-  document.documentElement.style.setProperty(
-    "--viewport-height",
-    `${window.innerHeight}px`
-  );
 });
 
 fetchClips();
