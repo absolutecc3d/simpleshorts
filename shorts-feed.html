@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: -apple-system, sans-serif;
+  }
+  #keyScreen {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #eee;
+    padding: 24px;
+    text-align: center;
+  }
+  #keyScreen input {
+    width: 100%;
+    max-width: 360px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #111;
+    color: #eee;
+    font-size: 14px;
+  }
+  #keyScreen button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #ff3b5c;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #keyScreen small { color: #888; max-width: 360px; }
+  #feed {
+    height: 100vh;
+    width: 100vw;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    display: none;
+  }
+  .slide {
+    height: 100vh;
+    width: 100vw;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #000;
+  }
+  .slide iframe {
+    height: 100%;
+    width: 100%;
+    border: none;
+  }
+  #feed::-webkit-scrollbar { display: none; }
+  #feed { -ms-overflow-style: none; scrollbar-width: none; }
+  #loadingMore {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #888;
+    font-size: 12px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="keyScreen">
+  <div style="font-size:18px; color:#fff;">Paste your YouTube Data API key</div>
+  <small>Feed pulls from the YouTube Data API v3, searching "#shorts". Get a free key from Google Cloud Console (enable "YouTube Data API v3").</small>
+  <input id="apiKeyInput" type="text" placeholder="API key" />
+  <button id="startBtn">Start scrolling</button>
+  <div id="errorMsg" style="color:#ff6b6b; font-size:13px;"></div>
+</div>
+
+<div id="feed"></div>
+<div id="loadingMore">loading more…</div>
+
+<script>
+  const SEARCH_QUERY = "#shorts";
+  let apiKey = "";
+  let nextPageToken = "";
+  let loading = false;
+
+  const feed = document.getElementById('feed');
+  const keyScreen = document.getElementById('keyScreen');
+  const loadingMore = document.getElementById('loadingMore');
+  const errorMsg = document.getElementById('errorMsg');
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) return;
+    apiKey = val;
+    keyScreen.style.display = 'none';
+    feed.style.display = 'block';
+    fetchVideos();
+  });
+
+  async function fetchVideos() {
+    if (loading) return;
+    loading = true;
+    loadingMore.style.display = 'block';
+    try {
+      const url = new URL('https://www.googleapis.com/youtube/v3/search');
+      url.searchParams.set('part', 'snippet');
+      url.searchParams.set('q', SEARCH_QUERY);
+      url.searchParams.set('type', 'video');
+      url.searchParams.set('videoDuration', 'short');
+      url.searchParams.set('maxResults', '10');
+      url.searchParams.set('key', apiKey);
+      if (nextPageToken) url.searchParams.set('pageToken', nextPageToken);
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.error) {
+        errorMsg.textContent = data.error.message || 'API error';
+        keyScreen.style.display = 'flex';
+        feed.style.display = 'none';
+        loading = false;
+        loadingMore.style.display = 'none';
+        return;
+      }
+
+      nextPageToken = data.nextPageToken || "";
+
+      (data.items || []).forEach((item) => {
+        const videoId = item.id.videoId;
+        if (!videoId) return;
+        addSlide(videoId);
+      });
+    } catch (e) {
+      errorMsg.textContent = 'Network error — check the key and try again.';
+    }
+    loading = false;
+    loadingMore.style.display = 'none';
+  }
+
+  function addSlide(videoId) {
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+    slide.dataset.muted = 'false';
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1`;
+    iframe.allow = "autoplay; encrypted-media";
+    iframe.allowFullscreen = false;
+
+    slide.appendChild(iframe);
+    feed.appendChild(slide);
+    observer.observe(slide);
+  }
+
+  function postToIframe(iframe, func, args = []) {
+    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const iframe = entry.target.querySelector('iframe');
+      if (!iframe) return;
+      if (entry.isIntersecting) {
+        postToIframe(iframe, 'unMute');
+        postToIframe(iframe, 'playVideo');
+      } else {
+        postToIframe(iframe, 'pauseVideo');
+      }
+    });
+  }, { threshold: 0.6 });
+
+  // infinite scroll: load more when near bottom
+  feed.addEventListener('scroll', () => {
+    if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - window.innerHeight * 2) {
+      fetchVideos();
+    }
+  });
+
+  // tap to toggle mute per-slide
+  feed.addEventListener('click', (e) => {
+    const slide = e.target.closest('.slide');
+    if (!slide) return;
+    const iframe = slide.querySelector('iframe');
+    if (!iframe) return;
+    if (slide.dataset.muted === 'false') {
+      postToIframe(iframe, 'mute');
+      slide.dataset.muted = 'true';
+    } else {
+      postToIframe(iframe, 'unMute');
+      slide.dataset.muted = 'false';
+    }
+  });
+</script>
+
+</body>
+</html>
