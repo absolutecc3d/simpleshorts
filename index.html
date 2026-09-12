@@ -73,9 +73,16 @@
 
     try {
       const subs = SUBREDDITS.join('+');
-      const url = `https://www.reddit.com/r/${subs}/hot.json?limit=25${afterToken ? '&after=' + afterToken : ''}`;
+      const url = `/api/reddit?subs=${subs}${afterToken ? '&after=' + afterToken : ''}`;
       const res = await fetch(url);
       const data = await res.json();
+
+      if (data.error) {
+        console.error('API error:', data.error);
+        loading = false;
+        status.style.display = 'none';
+        return;
+      }
 
       afterToken = data.data.after;
       if (!afterToken) noMoreData = true;
