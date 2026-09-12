@@ -30,10 +30,11 @@
     position: relative;
     background: #000;
   }
-  .slide iframe {
+  .slide video {
     height: 100%;
     width: 100%;
-    border: none;
+    object-fit: contain;
+    background: #000;
   }
   #feed::-webkit-scrollbar { display: none; }
   #feed { -ms-overflow-style: none; scrollbar-width: none; }
@@ -45,18 +46,7 @@
     color: #888;
     font-size: 12px;
     z-index: 10;
-  }
-  #errorBox {
-    position: fixed;
-    inset: 0;
     display: none;
-    align-items: center;
-    justify-content: center;
-    color: #ff6b6b;
-    font-size: 14px;
-    padding: 24px;
-    text-align: center;
-    z-index: 20;
   }
 </style>
 </head>
@@ -64,131 +54,115 @@
 
 <div id="feed"></div>
 <div id="status">loading…</div>
-<div id="errorBox"></div>
 
 <script>
-  // Category IDs per Medal's /v1/categories endpoint. 0 = All games.
-  const CATEGORY_ID = 0;
+  // Edit this list to change what shows up in the feed
+  const SUBREDDITS = ["oddlysatisfying", "nextfuckinglevel", "interestingasfuck", "BetterEveryLoop"];
 
   const feed = document.getElementById('feed');
   const status = document.getElementById('status');
-  const errorBox = document.getElementById('errorBox');
 
-  let apiKey = null;
-  let offset = 0;
+  let afterToken = null;
   let loading = false;
   let noMoreData = false;
 
-  function showError(msg) {
-    errorBox.textContent = msg;
-    errorBox.style.display = 'flex';
-    status.style.display = 'none';
-  }
-
-  async function init() {
-    try {
-      const keyRes = await fetch('https://developers.medal.tv/v1/generate_public_key', {
-        method: 'GET'
-      });
-      const keyText = await keyRes.text();
-      console.log('Raw key response:', keyText);
-
-      let parsedKey;
-      try {
-        const parsed = JSON.parse(keyText);
-        parsedKey = parsed.publicKey || parsed.data || parsed.key || keyText;
-      } catch {
-        parsedKey = keyText.replace(/"/g, '').trim();
-      }
-      apiKey = parsedKey;
-      console.log('Using API key:', apiKey);
-
-      if (!apiKey || apiKey.length < 5) {
-        showError('Could not generate a Medal API key. Medal\'s API may have changed or be temporarily unavailable. Raw response: ' + keyText);
-        return;
-      }
-
-      fetchClips();
-    } catch (e) {
-      console.error(e);
-      showError('Could not reach Medal\'s API to generate a key: ' + e.message);
-    }
-  }
-
-  async function fetchClips() {
-    if (loading || noMoreData || !apiKey) return;
+  async function fetchBatch() {
+    if (loading || noMoreData) return;
     loading = true;
     status.style.display = 'block';
 
     try {
-      const url = `https://developers.medal.tv/v1/trending?categoryId=${CATEGORY_ID}&limit=10&offset=${offset}`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': apiKey }
-      });
+      const subs = SUBREDDITS.join('+');
+      const url = `/api/reddit?subs=${subs}${afterToken ? '&after=' + afterToken : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-      if (!res.ok) {
-        const bodyText = await res.text();
-        console.error('Trending fetch failed:', res.status, bodyText);
-        showError(`Medal API error (${res.status}). Key used: ${apiKey}. Response: ${bodyText}`);
+      if (data.error) {
+        console.error('API error:', data.error);
         loading = false;
+        status.style.display = 'none';
         return;
       }
 
-      const data = await res.json();
-      const clips = data.contentObjects || [];
+      afterToken = data.data.after;
+      if (!afterToken) noMoreData = true;
 
-      if (clips.length === 0) {
-        noMoreData = true;
-      } else {
-        clips.forEach(addSlide);
-        offset += clips.length;
+      const posts = data.data.children || [];
+      let added = 0;
+
+      posts.forEach(({ data: post }) => {
+        const videoUrl = getVideoUrl(post);
+        if (videoUrl) {
+          addSlide(videoUrl);
+          added++;
+        }
+      });
+
+      // if we got a page with zero usable videos, try again for more
+      if (added === 0 && afterToken) {
+        loading = false;
+        fetchBatch();
+        return;
       }
     } catch (e) {
-      showError('Network error reaching Medal\'s API.');
+      console.error(e);
     }
 
     loading = false;
     status.style.display = 'none';
   }
 
-  function extractSrc(embedIframeUrl) {
-    const match = embedIframeUrl && embedIframeUrl.match(/src=['"]([^'"]+)['"]/);
-    return match ? match[1] : null;
+  function getVideoUrl(post) {
+    if (post.over_18) return null;
+
+    // native reddit-hosted video
+    if (post.is_video && post.media && post.media.reddit_video) {
+      return post.media.reddit_video.fallback_url;
+    }
+    // crossposted reddit video
+    if (post.crosspost_parent_list && post.crosspost_parent_list.length) {
+      const parent = post.crosspost_parent_list[0];
+      if (parent.is_video && parent.media && parent.media.reddit_video) {
+        return parent.media.reddit_video.fallback_url;
+      }
+    }
+    // direct mp4 link posts
+    if (typeof post.url === 'string' && post.url.endsWith('.mp4')) {
+      return post.url;
+    }
+    return null;
   }
 
-  function addSlide(clip) {
-    const rawSrc = extractSrc(clip.embedIframeUrl);
-    if (!rawSrc) return;
-
-    // force no cta overlay, no loop-forced-autoplay until in view
-    const url = new URL(rawSrc);
-    url.searchParams.set('cta', '0');
-    url.searchParams.set('autoplay', '0');
-    url.searchParams.set('loop', '1');
-
+  function addSlide(videoUrl) {
     const slide = document.createElement('div');
     slide.className = 'slide';
-    slide.dataset.src = url.toString();
 
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    slide.appendChild(video);
     feed.appendChild(slide);
     observer.observe(slide);
+
+    // tap to toggle mute (and play if paused)
+    slide.addEventListener('click', () => {
+      if (video.paused) video.play();
+      video.muted = !video.muted;
+    });
   }
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      const slide = entry.target;
+      const video = entry.target.querySelector('video');
+      if (!video) return;
       if (entry.isIntersecting) {
-        if (!slide.querySelector('iframe')) {
-          const iframe = document.createElement('iframe');
-          iframe.src = slide.dataset.src;
-          iframe.allow = 'autoplay; encrypted-media';
-          iframe.allowFullscreen = true;
-          slide.appendChild(iframe);
-        }
+        video.play().catch(() => {});
       } else {
-        // unload iframe when scrolled away to stop playback
-        const iframe = slide.querySelector('iframe');
-        if (iframe) iframe.remove();
+        video.pause();
       }
     });
   }, { threshold: 0.6 });
@@ -196,11 +170,11 @@
   // infinite scroll
   feed.addEventListener('scroll', () => {
     if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - window.innerHeight * 2) {
-      fetchClips();
+      fetchBatch();
     }
   });
 
-  init();
+  fetchBatch();
 </script>
 
 </body>
