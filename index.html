@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,6 +29,15 @@ body {
   scroll-behavior: smooth;
 }
 
+#feed::-webkit-scrollbar {
+  display: none;
+}
+
+#feed {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .slide {
   height: 100vh;
   width: 100vw;
@@ -45,15 +55,6 @@ body {
   width: 100%;
   object-fit: contain;
   background: #000;
-}
-
-#feed::-webkit-scrollbar {
-  display: none;
-}
-
-#feed {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 #status {
@@ -81,40 +82,68 @@ body {
 
 #logo {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: 20px;
+  bottom: 20px;
   z-index: 15;
-  padding: 7px 11px;
-  border-radius: 11px;
-  background: rgba(0, 0, 0, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 14px;
+  background: rgba(15, 15, 18, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(255, 255, 255, 0.95);
   font-size: 13px;
-  font-weight: 650;
-  letter-spacing: -0.2px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
   user-select: none;
   pointer-events: none;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 5px 25px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.logo-mark {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff, #aaa);
+  color: #111;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.logo-text {
+  line-height: 1;
+}
+
+.logo-text span {
+  opacity: 0.58;
+  font-weight: 500;
 }
 
 .sound-indicator {
   position: absolute;
-  right: 18px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: white;
-  font-size: 19px;
+  font-size: 21px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -123,6 +152,76 @@ body {
 .sound-indicator.show {
   opacity: 1;
 }
+
+.pause-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.68);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: white;
+  font-size: 38px;
+  padding-left: 3px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  box-shadow:
+    0 8px 35px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.pause-indicator.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.pause-indicator.paused {
+  padding-left: 0;
+}
+
+.pause-indicator.paused::before,
+.pause-indicator.paused::after {
+  content: "";
+  display: block;
+  width: 9px;
+  height: 32px;
+  background: white;
+  border-radius: 3px;
+  position: absolute;
+}
+
+.pause-indicator.paused::before {
+  transform: translateX(-7px);
+}
+
+.pause-indicator.paused::after {
+  transform: translateX(7px);
+}
+
+.pause-indicator.playing {
+  font-size: 0;
+}
+
+.pause-indicator.playing::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 17px solid transparent;
+  border-bottom: 17px solid transparent;
+  border-left: 27px solid white;
+  margin-left: 7px;
+}
 </style>
 </head>
 
@@ -130,7 +229,10 @@ body {
 
 <div id="feed"></div>
 
-<div id="logo">simpleclips.</div>
+<div id="logo">
+  <div class="logo-mark">S</div>
+  <div class="logo-text">simple<span>clips.</span></div>
+</div>
 
 <div id="status">loading…</div>
 
@@ -234,6 +336,15 @@ function createSoundIndicator(slide) {
   return indicator;
 }
 
+function createPauseIndicator(slide) {
+  const indicator = document.createElement('div');
+  indicator.className = 'pause-indicator';
+
+  slide.appendChild(indicator);
+
+  return indicator;
+}
+
 function showSoundIndicator(indicator) {
   indicator.classList.add('show');
 
@@ -242,6 +353,22 @@ function showSoundIndicator(indicator) {
   indicator.hideTimeout = setTimeout(() => {
     indicator.classList.remove('show');
   }, 700);
+}
+
+function showPauseIndicator(indicator, paused) {
+  indicator.classList.remove('playing', 'paused');
+
+  if (paused) {
+    indicator.classList.add('paused', 'show');
+  } else {
+    indicator.classList.add('playing', 'show');
+
+    clearTimeout(indicator.hideTimeout);
+
+    indicator.hideTimeout = setTimeout(() => {
+      indicator.classList.remove('show');
+    }, 500);
+  }
 }
 
 function addSlide(clip) {
@@ -259,37 +386,44 @@ function addSlide(clip) {
   slide.appendChild(video);
 
   const soundIndicator = createSoundIndicator(slide);
+  const pauseIndicator = createPauseIndicator(slide);
 
   feed.appendChild(slide);
 
   observer.observe(slide);
 
   slide.addEventListener('click', async () => {
-    soundEnabled = !soundEnabled;
+    if (video.paused) {
+      try {
+        await video.play();
+        showPauseIndicator(pauseIndicator, false);
+      } catch (e) {
+        console.warn('Video playback failed:', e);
+      }
 
-    video.muted = !soundEnabled;
-
-    soundIndicator.textContent = soundEnabled ? '🔊' : '🔇';
-
-    showSoundIndicator(soundIndicator);
-
-    try {
-      await video.play();
-    } catch (e) {
-      console.warn('Video playback failed:', e);
+      return;
     }
 
-    document.querySelectorAll('.slide video').forEach(otherVideo => {
-      if (otherVideo !== video) {
-        otherVideo.muted = !soundEnabled;
-      }
-    });
+    video.pause();
+    showPauseIndicator(pauseIndicator, true);
+  });
+
+  video.addEventListener('ended', () => {
+    if (video.loop) {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }
+  });
+
+  slide.addEventListener('dblclick', (event) => {
+    event.preventDefault();
   });
 }
 
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(async (entry) => {
     const video = entry.target.querySelector('video');
+    const pauseIndicator = entry.target.querySelector('.pause-indicator');
 
     if (!video) return;
 
@@ -298,15 +432,18 @@ const observer = new IntersectionObserver((entries) => {
 
       try {
         await video.play();
+        pauseIndicator.classList.remove('show');
       } catch (e) {
         video.muted = true;
 
         try {
           await video.play();
+          pauseIndicator.classList.remove('show');
         } catch (e2) {}
       }
     } else {
       video.pause();
+      pauseIndicator.classList.remove('show');
     }
   });
 }, {
@@ -327,3 +464,4 @@ fetchClips();
 
 </body>
 </html>
+```
