@@ -1,4 +1,3 @@
-```js
 const INSTANCES = [
   "mas.to",
   "fosstodon.org",
